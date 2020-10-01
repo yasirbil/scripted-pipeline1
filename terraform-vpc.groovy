@@ -7,13 +7,15 @@ properties([
 
 node{
     stage("Pull Repo"){
-        git branch: 'solution', url: 'https://github.com/ikambarov/terraform-task.git'
+        cleanWs()
+        git branch: 'master', url: 'https://github.com/yasirbil/terraform-vpc.git'
     }
 
-    dir('sandbox/') {
+    withEnv(['AWS_REGION=us-east-1']) {
         withCredentials([usernamePassword(credentialsId: 'aws_jenkins_key', passwordVariable: 'AWS_SECRET_ACCESS_KEY', usernameVariable: 'AWS_ACCESS_KEY_ID')]) {
             stage("Terraform Init"){
                 sh """
+                    bash setenv.sh dev.tfvars
                     terraform init 
                 """
             }
@@ -21,23 +23,24 @@ node{
             if(params.terraform_apply){
                 stage("Terraform Apply"){
                     sh """
-                        terraform apply -auto-approve
+                        terraform apply -var-file dev.tfvars -auto-approve
                     """
                 }
             }
             else if(params.terraform_destroy){
                 stage("Terraform Destroy"){
                     sh """
-                        terraform destroy -auto-approve
+                        terraform destroy -var-file dev.tfvars -auto-approve
                     """
                 }
             }
             else {
                 stage("Terraform Plan"){
                     sh """
-                        terraform plan
+                        terraform plan -var-file dev.tfvars
                     """
                 }
             }           
-        }        
-    }
+        }
+    }         
+}
